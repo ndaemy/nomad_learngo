@@ -1,9 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
+
+func repeatMe(words ...string) {
+	fmt.Println(words)
+}
 
 func main() {
-	name := "ndaemy"
-	name = "soultree"
-	fmt.Println(name)
+	repeatMe("ndaemy", "soultree", "fly")
 }
