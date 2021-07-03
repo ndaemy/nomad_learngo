@@ -8,6 +8,6 @@ import (
 
 func main() {
 	account := accounts.NewAccount("ndaemy")
-	// account.balance = 100000
-	fmt.Println(*account)
+	account.Deposit(10)
+	fmt.Println(account.Balance())
 }
