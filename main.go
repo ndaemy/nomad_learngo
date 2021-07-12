@@ -5,18 +5,19 @@ import (
 	"time"
 )
 
-func isCool(person string, c chan bool) {
+func isCool(person string, c chan string) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(person)
-	c <- true
+	c <- person + " is cool"
 }
 
 func main() {
-	c := make(chan bool)
-	people := [2]string{"ndaemy", "soultree"}
+	c := make(chan string)
+	people := [4]string{"ndaemy", "soultree", "fly", "captain"}
 	for _, person := range people {
 		go isCool(person, c)
 	}
-	fmt.Println(<-c)
-	fmt.Println(<-c)
+	for range people {
+		fmt.Println(<-c)
+	}
 }
