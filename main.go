@@ -1,52 +1,47 @@
 package main
 
 import (
-	"errors"
-	"fmt"
+	"io"
+	"log"
 	"net/http"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
-type requestResult struct {
-	url    string
-	status string
+var baseURL string = "https://kr.indeed.com/jobs?q=golang&start=0"
+
+func checkErr(err error) {
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
-var errRequestFailed = errors.New("request failed")
+func checkCode(res *http.Response) {
+	if res.StatusCode != 200 {
+		log.Fatalln("Request failed with Status:", res.StatusCode)
+	}
+}
+
+func getPages() int {
+	res, err := http.Get(baseURL)
+	checkErr(err)
+	checkCode(res)
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatalln("Something went wrong while closing response body")
+		}
+	}(res.Body)
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	checkErr(err)
+
+	doc.Find(".pagination")
+
+	return 0
+}
 
 func main() {
-	results := make(map[string]string)
-	c := make(chan requestResult)
-
-	urls := []string{
-		"https://www.airbnb.com/",
-		"https://www.google.com/",
-		"https://www.amazon.com/",
-		"https://www.reddit.com/",
-		"https://www.google.com/",
-		"https://soundcloud.com/",
-		"https://www.facebook.com/",
-		"https://instagram.com/",
-		"https://nomadcoders.co/",
-	}
-	for _, url := range urls {
-		go hitURL(url, c)
-	}
-
-	for i := 0; i < len(urls); i++ {
-		result := <-c
-		results[result.url] = result.status
-	}
-
-	for url, status := range results {
-		fmt.Println(url, status)
-	}
-}
-
-func hitURL(url string, c chan<- requestResult) {
-	resp, err := http.Get(url)
-	status := "OK"
-	if err != nil || resp.StatusCode >= 400 {
-		status = "FAILED"
-	}
-	c <- requestResult{url: url, status: status}
+	getPages()
 }
