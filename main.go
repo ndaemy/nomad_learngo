@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,18 +9,43 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-var baseURL = "https://kr.indeed.com/jobs?q=golang&start=0"
+type extractedJob struct {
+	id       string
+	title    string
+	company  string
+	location string
+	summary  string
+}
 
-func checkErr(err error) {
-	if err != nil {
-		log.Fatalln(err)
+var baseURL = "https://kr.indeed.com/jobs?q=golang"
+
+func main() {
+	totalPages := getPages()
+
+	for i := 0; i < totalPages; i++ {
+		getPage(i)
 	}
 }
 
-func checkCode(res *http.Response) {
-	if res.StatusCode != 200 {
-		log.Fatalln("Request failed with Status:", res.StatusCode)
-	}
+func getPage(page int) {
+	pageURL := baseURL + "&start=" + strconv.Itoa(page*10)
+	fmt.Println("Requesting", pageURL)
+	res, err := http.Get(pageURL)
+	checkErr(err)
+	checkCode(res)
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	checkErr(err)
+
+	searchCards := doc.Find(".resultWithShelf")
+	searchCards.Each(func(i int, card *goquery.Selection) {
+		id, _ := card.Attr("data-jk")
+		title := card.Find(".jobTitle").Text()
+		company := card.Find(".companyName").Text()
+		companyLocation := card.Find(".companyLocation").Text()
+
+		fmt.Println(id, title, company, companyLocation)
+	})
 }
 
 func getPages() int {
@@ -30,12 +54,7 @@ func getPages() int {
 	checkErr(err)
 	checkCode(res)
 
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Fatalln("Something went wrong while closing response body")
-		}
-	}(res.Body)
+	defer res.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	checkErr(err)
@@ -47,15 +66,14 @@ func getPages() int {
 	return pages
 }
 
-func getPage(page int) {
-	pageURL := baseURL + "&start=" + strconv.Itoa(page*10)
-	fmt.Println("Requesting", pageURL)
+func checkErr(err error) {
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
-func main() {
-	totalPages := getPages()
-
-	for i := 0; i < totalPages; i++ {
-		getPage(i)
+func checkCode(res *http.Response) {
+	if res.StatusCode != 200 {
+		log.Fatalln("Request failed with Status:", res.StatusCode)
 	}
 }
